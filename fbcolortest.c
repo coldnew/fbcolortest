@@ -87,7 +87,7 @@ void full_framebuffer (struct fbdevice *dev, unsigned char r, unsigned char g, u
 
 void full_framebuffer_with_color (struct fbdevice *dev, int color)
 {
-        full_framebuffer(dev, color_array[0][color], color_array[1][color], color_array[2][color]);
+        full_framebuffer(dev, color_array[color][0], color_array[color][0], color_array[color][2]);
 }
 
 void clear_framebuffer (struct fbdevice *dev)
