@@ -33,20 +33,6 @@ enum COLOR_OFFSET {
         OFFSET_B,
 };
 
-enum COLOR_INDEX {
-        BLACK = 0,
-        WHITE,
-        RED,
-        GREEN,
-        BLUE,
-        CYAN,
-        PURPLE,
-        YELLOW,
-        DIM_GRAY,
-        GRAY,
-        LIGHT_GRAY,
-};
-
 char color_array[][3] = {
         {  0,   0,   0},        // Black
         {255, 255, 255},        // White
@@ -92,7 +78,7 @@ void full_framebuffer_with_color (struct fbdevice *dev, int color)
 
 void clear_framebuffer (struct fbdevice *dev)
 {
-        full_framebuffer_with_color(dev, BLACK);
+        full_framebuffer(dev, 0, 0, 0);
 }
 
 int main (int argc, char *argv[])
