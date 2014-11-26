@@ -125,8 +125,8 @@ int main (int argc, char *argv[])
 
         fprintf(stdout, "Screen information as : %d x %d, %dbpp\n", fbdev.vinfo.xres, fbdev.vinfo.yres, fbdev.vinfo.bits_per_pixel);
 
-        // calculate screen size
-        fbdev.screensize = (fbdev.vinfo.xres * fbdev.vinfo.yres * fbdev.vinfo.bits_per_pixel) / 8;
+        // Calculate the size of the screen in bytes
+        fbdev.screensize = fbdev.vinfo.xres_virtual * fbdev.vinfo.yres_virtual * (fbdev.vinfo.bits_per_pixel / 8);
 
         // mapping device to memory
         fbdev.ptr = (char *) mmap(0, fbdev.screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fbdev.fd, 0);
