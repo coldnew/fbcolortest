@@ -118,9 +118,11 @@ int main (int argc, char *argv[])
 
         fprintf(stdout, "The framebuffer device was mapped to memory successfully.\n");
 
-        for (int i = 0; i < COLOR_ARRAY_SIZE; i++) {
-                full_framebuffer(&fbdev, color_array[i][0], color_array[i][1], color_array[i][2]);
-                sleep(1);
+        while (1) {
+                for (int i = 0; i < COLOR_ARRAY_SIZE; i++) {
+                        full_framebuffer(&fbdev, color_array[i][0], color_array[i][1], color_array[i][2]);
+                        sleep(1);
+                }
         }
 
         // clear framebuffer
