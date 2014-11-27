@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+#include <signal.h>
 
 enum COLOR_OFFSET {
         OFFSET_R = 0,
@@ -57,7 +58,7 @@ struct fbdevice {
         int screensize;
 };
 
-void full_framebuffer (struct fbdevice *dev, unsigned char r, unsigned char g, unsigned char b)
+void full_framebuffer_with_color (struct fbdevice *dev, unsigned char r, unsigned char g, unsigned char b)
 {
         long int offset = 0;
 
@@ -73,64 +74,81 @@ void full_framebuffer (struct fbdevice *dev, unsigned char r, unsigned char g, u
 
 void clear_framebuffer (struct fbdevice *dev)
 {
-        full_framebuffer(dev, 0, 0, 0);
+        full_framebuffer_with_color(dev, 0, 0, 0);
+}
+
+int fbcolortest_device_open (struct fbdevice *dev)
+{
+        int ret = -1;
+
+        dev->fd = open("/dev/fb0", O_RDWR);
+        if (dev->fd < 0) {
+                dev->fd = open("/dev/graphics/fb0", O_RDWR);
+                if (dev->fd < 0) {
+                        fprintf(stderr, "open framebuffer failed, error: %s\n", strerror(errno));
+                        return dev->fd;
+                }
+        }
+
+        // Get fixed screen information
+        ret = ioctl(dev->fd, FBIOGET_FSCREENINFO, &dev->finfo);
+        if (ret < 0) {
+                fprintf(stderr, "Error reading dev fixed information, error: %s\n", strerror(errno));
+                return ret;
+        }
+
+        // Get variable screen information
+        ret = ioctl(dev->fd, FBIOGET_VSCREENINFO, &dev->vinfo);
+        if (ret < 0) {
+                fprintf(stderr, "Error reading dev variable information, error: %s\n", strerror(errno));
+                return ret;
+        }
+
+        fprintf(stdout, "Screen information as : %d x %d, %dbpp\n", dev->vinfo.xres, dev->vinfo.yres, dev->vinfo.bits_per_pixel);
+
+        // Calculate the size of the screen in bytes
+        dev->screensize = dev->vinfo.xres_virtual * dev->vinfo.yres_virtual * (dev->vinfo.bits_per_pixel / 8);
+
+        // mapping device to memory
+        dev->ptr = (char *) mmap(0, dev->screensize, PROT_READ | PROT_WRITE, MAP_SHARED, dev->fd, 0);
+        if (MAP_FAILED == (int) dev->ptr) {
+                fprintf(stderr, "Failed to map framebuffer device to memory, error: %s\n", strerror(errno));
+                return (int) dev->ptr;
+        }
+
+        fprintf(stdout, "The framebuffer device was mapped to memory successfully.\n");
+
+        return 0;
+}
+
+void fbcolortest_device_close (struct fbdevice *dev)
+{
+        // clear framebuffer
+        clear_framebuffer(dev);
+
+        // release resource
+        munmap (dev->ptr, dev->screensize);
+        close(dev->fd);
 }
 
 int main (int argc, char *argv[])
 {
         int ret = -1;
-        struct fbdevice fbdev;
+        struct fbdevice dev;
 
-        fbdev.fd = open("/dev/fb0", O_RDWR);
-        if (fbdev.fd < 0) {
-                fbdev.fd = open("/dev/graphics/fb0", O_RDWR);
-                if (fbdev.fd < 0) {
-                        fprintf(stderr, "open framebuffer failed, error: %s\n", strerror(errno));
-                        exit (1);
-                }
-        }
-
-        // Get fixed screen information
-        ret = ioctl(fbdev.fd, FBIOGET_FSCREENINFO, &fbdev.finfo);
+        ret = fbcolortest_device_open(&dev);
         if (ret < 0) {
-                fprintf(stderr, "Error reading fbdev fixed information, error: %s\n", strerror(errno));
-                exit(2);
+                close(dev.fd);
+                exit(EXIT_FAILURE);
         }
-
-        // Get variable screen information
-        ret = ioctl(fbdev.fd, FBIOGET_VSCREENINFO, &fbdev.vinfo);
-        if (ret < 0) {
-                fprintf(stderr, "Error reading fbdev variable information, error: %s\n", strerror(errno));
-                exit(3);
-        }
-
-        fprintf(stdout, "Screen information as : %d x %d, %dbpp\n", fbdev.vinfo.xres, fbdev.vinfo.yres, fbdev.vinfo.bits_per_pixel);
-
-        // Calculate the size of the screen in bytes
-        fbdev.screensize = fbdev.vinfo.xres_virtual * fbdev.vinfo.yres_virtual * (fbdev.vinfo.bits_per_pixel / 8);
-
-        // mapping device to memory
-        fbdev.ptr = (char *) mmap(0, fbdev.screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fbdev.fd, 0);
-        if (-1 == (int) fbdev.ptr) {
-                fprintf(stderr, "Failed to map framebuffer device to memory, error: %s\n", strerror(errno));
-                exit(5);
-        }
-
-        fprintf(stdout, "The framebuffer device was mapped to memory successfully.\n");
 
         while (1) {
                 for (int i = 0; i < COLOR_ARRAY_SIZE; i++) {
-                        full_framebuffer(&fbdev, color_array[i][0], color_array[i][1], color_array[i][2]);
+                        full_framebuffer_with_color(&dev, color_array[i][0], color_array[i][1], color_array[i][2]);
                         sleep(1);
                 }
         }
 
-        // clear framebuffer
-        clear_framebuffer(&fbdev);
-
-        // release resource
-        munmap (fbdev.ptr, fbdev.screensize);
-        close(fbdev.fd);
-
+        fbcolortest_device_close(&dev);
         return 0;
 }
