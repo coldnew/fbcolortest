@@ -28,12 +28,6 @@
 #include <string.h>
 #include <signal.h>
 
-enum COLOR_OFFSET {
-        OFFSET_R = 0,
-        OFFSET_G,
-        OFFSET_B,
-};
-
 char color_array[][3] = {
         {  0,   0,   0},        // Black
         {255, 255, 255},        // White
@@ -66,9 +60,7 @@ void full_framebuffer_with_color (struct fbdevice *dev, unsigned char r, unsigne
                 for(int y = 0; y < dev->vinfo.yres; y++) {
                         offset = (x + dev->vinfo.xoffset) * (dev->vinfo.bits_per_pixel / 8) + (y + dev->vinfo.yoffset) * dev->finfo.line_length;
                         if (32 == dev->vinfo.bits_per_pixel) {
-                                *((unsigned int *) (dev->ptr + offset + OFFSET_R)) = r;
-                                *((unsigned int *) (dev->ptr + offset + OFFSET_G)) = g;
-                                *((unsigned int *) (dev->ptr + offset + OFFSET_B)) = b;
+                                *((unsigned int *) (dev->ptr + offset)) = (r << 24) | (g << 16) | (b << 8) | 0xff;
                         }
                         else {
                                 // assume 16bpp
