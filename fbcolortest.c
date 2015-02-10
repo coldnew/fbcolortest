@@ -63,7 +63,7 @@ void full_framebuffer_with_color (struct fbdevice *dev, unsigned char r, unsigne
         long int offset = 0;
 
         for (int x = 0; x < dev->vinfo.xres; x++) {
-                for(int y = 0; y < dev->vinfo.yres - 1; y++) {
+                for(int y = 0; y < dev->vinfo.yres; y++) {
                         offset = (x + dev->vinfo.xoffset) * (dev->vinfo.bits_per_pixel / 8) + (y + dev->vinfo.yoffset) * dev->finfo.line_length;
                         if (32 == dev->vinfo.bits_per_pixel) {
                                 *((unsigned int *) (dev->ptr + offset + OFFSET_R)) = r;
